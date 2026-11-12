@@ -8,9 +8,9 @@
   </array>
   <key>WorkingDirectory</key><string>/Users/markus/ai-agent-cockpit</string>
   <key>EnvironmentVariables</key><dict>
-    <key>HTTP_PROXY</key><string>http://127.0.0.1:7892</string>
-    <key>HTTPS_PROXY</key><string>http://127.0.0.1:7892</string>
-    <key>NO_PROXY</key><string>localhost,127.0.0.1,::1</string>
+    <key>HTTP_PROXY</key><string>http://127.0.0.1:7890</string>
+    <key>HTTPS_PROXY</key><string>http://127.0.0.1:7890</string>
+    <key>NO_PROXY</key><string>localhost,127.0.0.1,::1,*.local,kimi.com,moonshot.cn,chatglm.cn,bigmodel.cn,zhipuai.cn,deepseek.com,volces.com</string>
   </dict>
   <key>RunAtLoad</key><true/><key>KeepAlive</key><true/>
   <key>StandardOutPath</key><string>/Users/markus/ai-agent-cockpit/logs/kimi-shim.log</string>

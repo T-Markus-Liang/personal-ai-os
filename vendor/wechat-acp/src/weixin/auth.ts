@@ -29,9 +29,43 @@ export function loadToken(storageDir: string): TokenData | null {
 }
 
 export function saveToken(storageDir: string, data: TokenData): void {
-  fs.mkdirSync(storageDir, { recursive: true });
+  fs.mkdirSync(storageDir, { recursive: true, mode: 0o700 });
+  fs.chmodSync(storageDir, 0o700);
   const tokenPath = getTokenPath(storageDir);
-  fs.writeFileSync(tokenPath, JSON.stringify(data, null, 2), "utf-8");
+  const temporary = path.join(
+    storageDir,
+    `.${path.basename(tokenPath)}.${process.pid}.${Date.now()}.tmp`,
+  );
+  const serialized = JSON.stringify(data, null, 2) + "\n";
+  let fd: number | undefined;
+  try {
+    // Use a fresh 0600 file and replace the target only after the complete
+    // payload is durable.  This avoids both umask-dependent permissions and
+    // readers observing a partially written bearer token.
+    fd = fs.openSync(temporary, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL, 0o600);
+    fs.writeFileSync(fd, serialized, "utf-8");
+    fs.fsyncSync(fd);
+    fs.closeSync(fd);
+    fd = undefined;
+    fs.chmodSync(temporary, 0o600);
+    try {
+      fs.renameSync(temporary, tokenPath);
+    } catch (error) {
+      // Windows does not replace an existing file with renameSync.  Keep the
+      // fallback scoped to that platform; macOS/Linux retain atomic replace.
+      if (process.platform !== "win32") throw error;
+      fs.rmSync(tokenPath, { force: true });
+      fs.renameSync(temporary, tokenPath);
+    }
+    // chmod is explicit even after rename so a pre-existing or platform
+    // specific permission policy can never widen the persisted secret.
+    fs.chmodSync(tokenPath, 0o600);
+  } finally {
+    if (fd !== undefined) {
+      try { fs.closeSync(fd); } catch { /* preserve the original error */ }
+    }
+    try { fs.rmSync(temporary, { force: true }); } catch { /* best effort cleanup */ }
+  }
 }
 
 export async function login(params: {
